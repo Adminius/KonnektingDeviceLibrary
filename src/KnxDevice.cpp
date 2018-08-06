@@ -111,7 +111,8 @@ void KnxDevice::task(void) {
     
     type_tx_action action;
     word nowTimeMillis, nowTimeMicros;
-    //stay in task() until _tpuart.IsActive() 
+    
+    //stay in task() if _tpuart.IsActive()
     do {
         // STEP 1 : Initialize Com Objects having Init Read attribute
         if (!_initCompleted) {
@@ -130,8 +131,8 @@ void KnxDevice::task(void) {
                     action.command = KNX_READ_REQUEST;
                     action.index = _initIndex;
                     _txActionList.append(action);
-            //normally, _validated flag will be set after response from KNX bus
-            //we set it manually with setValidity() after one try to avoid infinity loop if nobody answers  
+                    //normally, _validated flag will be set after response from KNX bus
+                    //we set it manually with setValidity() after one try to avoid infinity loop if nobody answers  
                     _comObjectsList[_initIndex].setValidity();
                     _lastInitTimeMillis = millis(); // Update the timer
                 }
@@ -155,14 +156,6 @@ void KnxDevice::task(void) {
                 //DEBUG_PRINTLN(F("Data to be transmitted index=%d"), action.index);
                 KnxComObject* comObj = (action.index == 255 ? &_progComObj : &_comObjectsList[action.index]);
                 
-                // hier bereits kaputt!
-                /*
-                    -> action.valuePtr[0]=0x7d // 0111 1101
-                    -> action.valuePtr[1]=0x03 // 0000 0011
-                * statt
-                    -> action.valuePtr[0]=0x00 // 0000 0000
-                    -> action.valuePtr[1]=0x16 // 0001 0110
-                */
                 //for (byte i = 0; i < comObj.GetLength() - 1; i++) {
                 //    DEBUG_PRINTLN(F("-> action.valuePtr[%d]=0x%02x"), i, action.valuePtr[i]);
                 //}
