@@ -111,6 +111,7 @@ void KnxDevice::task(void) {
     
     type_tx_action action;
     word nowTimeMillis, nowTimeMicros;
+    //stay in task() until _tpuart.IsActive() 
     do {
         // STEP 1 : Initialize Com Objects having Init Read attribute
         if (!_initCompleted) {
@@ -142,7 +143,7 @@ void KnxDevice::task(void) {
         nowTimeMicros = micros();
         if (TimeDeltaWord(nowTimeMicros, _lastRXTimeMicros) > 400) {
             _lastRXTimeMicros = nowTimeMicros;
-            v->RXTask();
+            _tpuart->RXTask();
             
             // TODO: check for rx_state in tpuart and call rxtask repeatedly until telegram is received?!
         }
@@ -225,7 +226,7 @@ void KnxDevice::task(void) {
             _lastTXTimeMicros = nowTimeMicros;
             _tpuart->TXTask();
         }
-    } while (_tpuart.IsActive())
+    } while (_tpuart->IsActive());
 }
 
 
