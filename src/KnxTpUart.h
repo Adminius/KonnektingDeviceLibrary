@@ -79,6 +79,8 @@
 #define TPUART_STATE_INDICATION_MASK          0x07
 #define KNX_CONTROL_FIELD_PATTERN_MASK   B11010011 // 0xD3
 #define KNX_CONTROL_FIELD_VALID_PATTERN  B10010000 // 0x90, Only Standard Frame Format "10" is handled
+#define KNX_PAYLOAD_LENGTH_MASK          B00001111 // 0x0F, last 4 bits, only Standard Frame is supported
+
 
 // Mask for STATE INDICATION service
 #define TPUART_STATE_INDICATION_SLAVE_COLLISION_MASK  0x80
@@ -312,7 +314,7 @@ inline byte KnxTpUart::GetTargetedComObjectIndex(void) const
 
 
 inline boolean KnxTpUart::IsActive(void) const
-{
+{ 
   if ( _rx.state > RX_IDLE_WAITING_FOR_CTRL_FIELD) return true; // Rx activity
   if ( _tx.state > TX_IDLE) return true; // Tx activity
   return false;

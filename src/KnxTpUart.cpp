@@ -291,6 +291,8 @@ byte KnxTpUart::SendTelegram(KnxTelegram& sentTelegram) {
 void KnxTpUart::RXTask(void) {
     byte incomingByte;
     word nowTime;
+    static bool telegramCompletelyReceived = false;
+    static byte expectedTelegramLength = 0;
     static byte readBytesNb; // Nb of read bytes during an KNX telegram reception
     static KnxTelegram telegram; // telegram being received
     static byte addressedComObjectIndex; // index of the com object targeted by the received telegram
@@ -299,11 +301,10 @@ void KnxTpUart::RXTask(void) {
     // === STEP 1 : Check EOP in case a Telegram is being received ===
     if (_rx.state >= RX_KNX_TELEGRAM_RECEPTION_STARTED) { // a telegram reception is ongoing
         
-//        DEBUG_PRINTLN(F("EOP REACHED"));
-        
         nowTime = (word) micros(); // word cast because a 65ms looping counter is long enough
-        if (TimeDeltaWord(nowTime, lastByteRxTimeMicrosec) > 2000 /* 2 ms */) { // EOP detected, the telegram reception is completed
-
+        if (TimeDeltaWord(nowTime, lastByteRxTimeMicrosec) > 2000 /* 2 ms */ || telegramCompletelyReceived) { // EOP detected, the telegram reception is completed
+//            DEBUG_PRINTLN(F("EOP REACHED"));
+            telegramCompletelyReceived = false;
             switch (_rx.state) {
                 case RX_KNX_TELEGRAM_RECEPTION_STARTED: // we are not supposed to get EOP now, the telegram is incomplete
 //                    DEBUG_PRINTLN(F("RX_KNX_TELEGRAM_RECEPTION_STARTED"));
@@ -399,14 +400,21 @@ void KnxTpUart::RXTask(void) {
                 telegram.WriteRawByte(incomingByte, readBytesNb);
                 readBytesNb++;
 
+                //we should try to comment out this check, because we can send telegrams that should be received by own self
                 if (readBytesNb == 3) { // We have just received the source address
                     // we check whether the received KNX telegram is coming from us (i.e. telegram is sent by the TPUART itself)
+//                    DEBUG_PRINTLN(F("SourceAddress: %d.%d.%d"), (telegram.GetSourceAddress() >> 12), (telegram.GetSourceAddress() >> 8) & 0x0F, telegram.GetSourceAddress() & 0xFF);
                     if (telegram.GetSourceAddress() == _physicalAddr) { // the message is coming from us, we consider it as not addressed and we don't send any ACK service
 //                        DEBUG_PRINTLN(F("message from us, skip."));
                         _rx.state = RX_KNX_TELEGRAM_RECEPTION_NOT_ADDRESSED;
                     }
                 } else if (readBytesNb == 6) // We have just read the routing field containing the address type and the payload length
-                { // We check if the message is addressed to us in order to send the appropriate acknowledge
+                { 
+                    // Telegram length is payload length + 7 bytes "overhead"
+                    expectedTelegramLength = (incomingByte & KNX_PAYLOAD_LENGTH_MASK) + 7;
+///                    DEBUG_PRINTLN(F("TargetAddress: %d/%d/%d"), (telegram.GetTargetAddress() >> 11), (telegram.GetTargetAddress() >> 8) & 0x07, telegram.GetTargetAddress() & 0xFF);
+                    
+                    // We check if the message is addressed to us in order to send the appropriate acknowledge
                     if (IsAddressAssigned(telegram.GetTargetAddress(), addressedComObjectIndex)) { // Message addressed to us
                         
 //                        DEBUG_PRINTLN(F("assigned to us: ga=0x%04x index=%d"), telegram.GetTargetAddress(), addressedComObjectIndex);
@@ -436,9 +444,18 @@ void KnxTpUart::RXTask(void) {
                 
                 if (readBytesNb == KNX_TELEGRAM_MAX_SIZE) {
                     _rx.state = RX_KNX_TELEGRAM_RECEPTION_LENGTH_INVALID;
+                    DEBUG_PRINTLN(F("RX_KNX_TELEGRAM_RECEPTION_LENGTH_INVALID"));
                 } else {
                     telegram.WriteRawByte(incomingByte, readBytesNb);
-                    readBytesNb++;
+                    // DEBUG_PRINTLN(F("expectedTelegramLength: %d, readBytesNb: %d"),expectedTelegramLength,readBytesNb);
+                    if (expectedTelegramLength == readBytesNb) {
+                        telegramCompletelyReceived = true;
+                        //we are done with reception
+//                        DEBUG_PRINTLN(F("we are done, telegramCompletelyReceived: %d"),telegramCompletelyReceived);
+                    } else {
+                        
+                        readBytesNb++;
+                    }
                 }
                 break;
 
