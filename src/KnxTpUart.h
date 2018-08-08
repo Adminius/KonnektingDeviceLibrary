@@ -89,6 +89,15 @@
 #define TPUART_STATE_INDICATION_PROTOCOL_ERROR_MASK   0x10
 #define TPUART_STATE_INDICATION_TEMP_WARNING_MASK     0x08
 
+// Time out/EOP by telegram recption (us)
+#ifdef ESP32
+// ESP32 more time, maybe will be fixed in future
+#define KNX_RECEPTION_TIMEOUT 30000
+#else
+// all other MCU are fine with 2000us
+#define KNX_RECEPTION_TIMEOUT 2000
+#endif
+
 // Definition of the TP-UART working modes
 enum type_KnxTpUartMode { NORMAL,
                           BUS_MONITOR };

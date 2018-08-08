@@ -302,7 +302,7 @@ void KnxTpUart::RXTask(void) {
     if (_rx.state >= RX_KNX_TELEGRAM_RECEPTION_STARTED) { // a telegram reception is ongoing
         
         nowTime = (word) micros(); // word cast because a 65ms looping counter is long enough
-        if (TimeDeltaWord(nowTime, lastByteRxTimeMicrosec) > 2000 /* 2 ms */ || telegramCompletelyReceived) { // EOP detected, the telegram reception is completed
+        if (TimeDeltaWord(nowTime, lastByteRxTimeMicrosec) > KNX_RECEPTION_TIMEOUT || telegramCompletelyReceived) { // EOP detected, the telegram reception is completed
 //            DEBUG_PRINTLN(F("EOP REACHED"));
             telegramCompletelyReceived = false;
             switch (_rx.state) {
@@ -311,6 +311,7 @@ void KnxTpUart::RXTask(void) {
                 case RX_KNX_TELEGRAM_RECEPTION_LENGTH_INVALID:
 //                    DEBUG_PRINTLN(F("RX_KNX_TELEGRAM_RECEPTION_LENGTH_INVALID"));
                     _evtCallbackFct(TPUART_EVENT_KNX_TELEGRAM_RECEPTION_ERROR); // Notify telegram reception error
+//                    DEBUG_PRINTLN(F("TPUART_EVENT_KNX_TELEGRAM_RECEPTION_ERROR"));
                     break;
 
                 case RX_KNX_TELEGRAM_RECEPTION_ADDRESSED:
@@ -352,6 +353,7 @@ void KnxTpUart::RXTask(void) {
                     _rx.state = RX_KNX_TELEGRAM_RECEPTION_STARTED;
                     readBytesNb = 1;
                     telegram.WriteRawByte(incomingByte, 0);
+//                    DEBUG_PRINTLN(F("RX_KNX_TELEGRAM_RECEPTION_STARTED"));
                 } 
                 // CASE OF TPUART_DATA_CONFIRM_SUCCESS NOTIFICATION
                 else if (incomingByte == TPUART_DATA_CONFIRM_SUCCESS) {
@@ -412,7 +414,7 @@ void KnxTpUart::RXTask(void) {
                 { 
                     // Telegram length is payload length + 7 bytes "overhead"
                     expectedTelegramLength = (incomingByte & KNX_PAYLOAD_LENGTH_MASK) + 7;
-///                    DEBUG_PRINTLN(F("TargetAddress: %d/%d/%d"), (telegram.GetTargetAddress() >> 11), (telegram.GetTargetAddress() >> 8) & 0x07, telegram.GetTargetAddress() & 0xFF);
+//                    DEBUG_PRINTLN(F("TargetAddress: %d/%d/%d"), (telegram.GetTargetAddress() >> 11), (telegram.GetTargetAddress() >> 8) & 0x07, telegram.GetTargetAddress() & 0xFF);
                     
                     // We check if the message is addressed to us in order to send the appropriate acknowledge
                     if (IsAddressAssigned(telegram.GetTargetAddress(), addressedComObjectIndex)) { // Message addressed to us
