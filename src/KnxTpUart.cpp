@@ -224,7 +224,7 @@ byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSiz
 // Init must be called after every reset() execution
 
 byte KnxTpUart::Init(void) {
-    byte tpuartCmd[3];
+//    byte tpuartCmd[3];
 
     if ((_rx.state != RX_INIT) || (_tx.state != TX_INIT)) return KNX_TPUART_ERROR_NOT_INIT_STATE;
 
@@ -239,7 +239,7 @@ byte KnxTpUart::Init(void) {
         if (_tx.ackFctPtr == NULL) return KNX_TPUART_ERROR_NULL_ACK_CALLBACK_FCT;
 /*
         // Set Physical address. This allows to activate address evaluation by the TPUART
-/*      we don't need it anymore. it fixes also bug with PA 1.1.1 on NCN5120
+        we don't need it anymore. it fixes also bug with PA 1.1.1 on NCN5120
         tpuartCmd[0] = TPUART_SET_ADDR_REQ;
         tpuartCmd[1] = (byte) (_physicalAddr >> 8);
         tpuartCmd[2] = (byte) _physicalAddr;
